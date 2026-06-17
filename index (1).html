@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clip Manager</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f4; --bg3: #eeece8;
+    --text: #1a1a1a; --text2: #6b6b6b; --text3: #9b9b9b;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e; --bg2: #2c2c2e; --bg3: #3a3a3c;
+      --text: #f2f2f7; --text2: #aeaeb2; --text3: #636366;
+      --border: rgba(255,255,255,0.12); --border2: rgba(255,255,255,0.22);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg3); min-height: 100vh; }
+  .app { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
+  .header { padding: 1rem 1rem 0.75rem; border-bottom: 0.5px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10; }
+  .header-title { font-size: 17px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .nav { display: flex; border-bottom: 0.5px solid var(--border); overflow-x: auto; scrollbar-width: none; background: var(--bg); position: sticky; top: 57px; z-index: 10; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-item { flex-shrink: 0; padding: 10px 14px; font-size: 13px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .nav-item.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
+  .page { display: none; padding: 1rem; flex: 1; }
+  .page.active { display: block; }
+  .field { margin-bottom: 12px; }
+  .field-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+  input[type=url], input[type=text], textarea, select {
+    width: 100%; padding: 9px 12px; border: 0.5px solid var(--border2);
+    border-radius: var(--radius); background: var(--bg2); color: var(--text);
+    font-size: 14px; font-family: var(--font); outline: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--text3); }
+  textarea { resize: none; height: 64px; line-height: 1.5; }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .btn-save { width: 100%; padding: 11px; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; }
+  .btn-save:active { opacity: 0.8; }
+  .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .feedback { text-align: center; font-size: 13px; color: var(--text2); min-height: 20px; margin-top: 8px; }
+  .filter-block { margin-bottom: 10px; }
+  .filter-title { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pill { font-size: 12px; padding: 5px 11px; border-radius: 99px; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .pill.a-all { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .pill.a-fb { background: #E7F0FD; color: #0C447C; border-color: #85B7EB; }
+  .pill.a-ig { background: #FBEAF0; color: #72243E; border-color: #ED93B1; }
+  .pill.a-tt { background: #E1F5EE; color: #085041; border-color: #5DCAA5; }
+  .pill.a-lm { background: #FAEEDA; color: #633806; border-color: #EF9F27; }
+  .pill.a-anim { background: #EEEDFE; color: #3C3489; border-color: #AFA9EC; }
+  .pill.a-daily { background: #FCEBEB; color: #791F1F; border-color: #F09595; }
+  .pill.a-sale { background: #E8F5E9; color: #1B5E20; border-color: #81C784; }
+  .pill.a-cat { background: var(--bg2); color: var(--text); border-color: var(--border2); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot-fb { background: #1451A5; } .dot-ig { background: #72243E; }
+  .dot-tt { background: #085041; } .dot-lm { background: #633806; }
+  .show-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 12px; }
+  .show-row span { font-size: 13px; color: var(--text2); }
+  .tog { position: relative; width: 38px; height: 22px; flex-shrink: 0; }
+  .tog input { opacity: 0; width: 0; height: 0; }
+  .tog-sl { position: absolute; cursor: pointer; inset: 0; background: var(--border2); border-radius: 99px; transition: .25s; }
+  .tog-sl:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .25s; }
+  .tog input:checked + .tog-sl { background: #0F6E56; }
+  .tog input:checked + .tog-sl:before { transform: translateX(16px); }
+  .clip-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 10px; }
+  .clip-card.reviewed { opacity: 0.42; }
+  .card-head { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; flex-wrap: wrap; }
+  .pbadge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; flex-shrink: 0; }
+  .pb-fb { background: #E7F0FD; color: #0C447C; }
+  .pb-ig { background: #FBEAF0; color: #72243E; }
+  .pb-tt { background: #E1F5EE; color: #085041; }
+  .pb-lm { background: #FAEEDA; color: #633806; }
+  .pb-other { background: var(--bg2); color: var(--text2); }
+  .cbadge { font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 500; flex-shrink: 0; }
+  .cb-anim { background: #EEEDFE; color: #3C3489; }
+  .cb-daily { background: #FCEBEB; color: #791F1F; }
+  .cb-sale { background: #E8F5E9; color: #1B5E20; }
+  .tag-chip { font-size: 11px; background: var(--bg2); color: var(--text2); padding: 3px 8px; border-radius: 99px; border: 0.5px solid var(--border); }
+  .rev-badge { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: #EAF3DE; color: #27500A; display: flex; align-items: center; gap: 3px; }
+  .del-btn { margin-left: auto; background: none; border: none; color: #E24B4A; cursor: pointer; padding: 2px 4px; display: flex; align-items: center; }
+  .note { font-size: 13px; color: var(--text2); line-height: 1.55; margin-bottom: 10px; }
+  .card-foot { display: flex; align-items: center; gap: 8px; }
+  .open-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text2); text-decoration: none; padding: 5px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); }
+  .meta-txt { font-size: 11px; color: var(--text3); margin-left: auto; }
+  .assign-row { display: flex; gap: 6px; margin-top: 10px; }
+  .assign-row select { flex: none; width: auto; font-size: 12px; padding: 6px 8px; }
+  .assign-row input { flex: 1; font-size: 12px; padding: 6px 10px; }
+  .check-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--border); cursor: pointer; user-select: none; }
+  .chk { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--border2); background: var(--bg2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; color: transparent; font-weight: 500; }
+  .chk.on { background: #0F6E56; border-color: #0F6E56; color: white; }
+  .chk-label { font-size: 13px; color: var(--text2); }
+  .chk-date { font-size: 11px; color: var(--text3); margin-left: auto; }
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); }
+  .empty i { font-size: 36px; display: block; margin-bottom: 10px; color: var(--border2); }
+  .loading { text-align: center; padding: 2rem 1rem; color: var(--text2); font-size: 14px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-bottom: 16px; }
+  .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+  .stat-n { font-size: 24px; font-weight: 500; color: var(--text); line-height: 1; }
+  .stat-l { font-size: 12px; color: var(--text2); margin-top: 3px; }
+  .sec-head { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+  .sec-head:first-child { margin-top: 0; }
+  .meet-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 8px; }
+  .meet-card.done { opacity: 0.38; }
+  .meet-btns { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+  .btn-open { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; font-family: var(--font); text-decoration: none; }
+  .btn-ghost { display: inline-flex; align-items: center; gap: 4px; padding: 6px 11px; background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 12px; cursor: pointer; font-family: var(--font); text-decoration: none; }
+  .meet-assign { flex: 1; padding: 6px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); color: var(--text); font-size: 12px; font-family: var(--font); }
+  .assignee-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: var(--bg2); color: var(--text2); padding: 3px 8px; border-radius: 99px; border: 0.5px solid var(--border); }
+  .sync-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 10px; }
+  .sync-txt { font-size: 12px; color: var(--text3); }
+  .btn-sync { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 5px 10px; background: var(--bg2); color: var(--text2); border: 0.5px solid var(--border2); border-radius: var(--radius); cursor: pointer; font-family: var(--font); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-title"><i class="ti ti-bookmarks" style="font-size:18px"></i> Clip Manager</div>
+    <div class="header-sub" id="header-sub">กำลังโหลด...</div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="goPage('save',this)"><i class="ti ti-plus"></i> บันทึก</div>
+    <div class="nav-item" onclick="goPage('clips',this)"><i class="ti ti-layout-grid"></i> คลิป</div>
+    <div class="nav-item" onclick="goPage('meeting',this)"><i class="ti ti-presentation"></i> ประชุม</div>
+    <div class="nav-item" onclick="goPage('history',this)"><i class="ti ti-clock-history"></i> History</div>
+  </div>
+
+  <div id="pg-save" class="page active">
+    <div class="field"><div class="field-label">ลิงก์</div><input type="url" id="inp-url" placeholder="วางลิงก์ที่นี่..." /></div>
+    <div class="row2">
+      <div class="field"><div class="field-label">Platform</div>
+        <select id="inp-platform">
+          <option value="auto">Auto-detect</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="tiktok">TikTok</option>
+          <option value="lemon8">Lemon8</option>
+          <option value="other">อื่นๆ</option>
+        </select>
+      </div>
+      <div class="field"><div class="field-label">หมวดงาน</div>
+        <select id="inp-category">
+          <option value="">— ไม่ระบุ —</option>
+          <option value="animation">Animation</option>
+          <option value="daily">Daily Post</option>
+          <option value="sale">Sale</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><div class="field-label">Tag</div><input type="text" id="inp-tag" placeholder="เช่น style, inspo, reference" /></div>
+    <div class="field"><div class="field-label">Note</div><textarea id="inp-note" placeholder="น่าสนใจยังไง? อยากทำอะไรต่อ?"></textarea></div>
+    <button class="btn-save" id="btn-save" onclick="saveClip()"><i class="ti ti-device-floppy"></i> บันทึก</button>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div id="pg-clips" class="page">
+    <div class="sync-bar">
+      <span class="sync-txt" id="sync-txt">—</span>
+      <button class="btn-sync" onclick="loadFromGAS()"><i class="ti ti-refresh"></i> Sync</button>
+    </div>
+    <div class="filter-block"><div class="filter-title">Platform</div><div class="pills" id="pf-pills"></div></div>
+    <div class="filter-block"><div class="filter-title">หมวดงาน</div><div class="pills" id="cf-pills"></div></div>
+    <div class="show-row"><span>แสดงที่ดูแล้ว</span><label class="tog"><input type="checkbox" id="tog-reviewed" onchange="renderClips()" /><span class="tog-sl"></span></label></div>
+    <div id="clips-list"></div>
+  </div>
+
+  <div id="pg-meeting" class="page">
+    <div class="stat-grid" id="meet-stats"></div>
+    <div id="meet-list"></div>
+  </div>
+
+  <div id="pg-history" class="page">
+    <div class="filter-block"><div class="filter-title">Platform</div><div class="pills" id="hpf-pills"></div></div>
+    <div class="filter-block"><div class="filter-title">หมวดงาน</div><div class="pills" id="hcf-pills"></div></div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzr9jU1k3OSl4hgix0JQgM4NgR7Q5Egpjevu1_aQ8Ao7g9FK3jvHufCQx-r6mUqL1Z8Rw/exec';
+
+const PLATFORMS=[
+  {id:'all',label:'ทั้งหมด',dot:'',badge:'pb-other',ac:'a-all'},
+  {id:'facebook',label:'Facebook',dot:'dot-fb',badge:'pb-fb',ac:'a-fb'},
+  {id:'instagram',label:'Instagram',dot:'dot-ig',badge:'pb-ig',ac:'a-ig'},
+  {id:'tiktok',label:'TikTok',dot:'dot-tt',badge:'pb-tt',ac:'a-tt'},
+  {id:'lemon8',label:'Lemon8',dot:'dot-lm',badge:'pb-lm',ac:'a-lm'},
+  {id:'other',label:'อื่นๆ',dot:'',badge:'pb-other',ac:'a-cat'},
+];
+const CATEGORIES=[
+  {id:'all',label:'ทั้งหมด',badge:'',cbadge:'',ac:'a-cat'},
+  {id:'animation',label:'Animation',badge:'Animation',cbadge:'cb-anim',ac:'a-anim'},
+  {id:'daily',label:'Daily Post',badge:'Daily Post',cbadge:'cb-daily',ac:'a-daily'},
+  {id:'sale',label:'Sale',badge:'Sale',cbadge:'cb-sale',ac:'a-sale'},
+];
+
+let clips=[], pfF='all', cfF='all', hpfF='all', hcfF='all';
+
+async function loadFromGAS(){
+  setSyncTxt('กำลัง sync...');
+  try {
+    const r = await fetch(GAS_URL);
+    const json = await r.json();
+    clips = (json.data||[]).map(d=>({
+      ...d,
+      id: Number(d.id),
+      reviewed: d.reviewed===true||d.reviewed==='true'||d.reviewed==='TRUE'
+    }));
+    setSyncTxt('อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}));
+  } catch(e) {
+    setSyncTxt('โหลดไม่สำเร็จ — ลอง Sync ใหม่');
+    clips=[];
+  }
+  updateHeader(); buildAllPills(); renderClips(); renderMeeting(); renderHistory();
+}
+
+function setSyncTxt(t){ const el=document.getElementById('sync-txt'); if(el) el.textContent=t; }
+
+async function gasPost(payload){
+  try {
+    await fetch(GAS_URL, { method:'POST', body: JSON.stringify(payload) });
+  } catch(e) { console.error('GAS post error',e); }
+}
+
+function detectPlatform(url){
+  if(!url) return 'other';
+  const u=url.toLowerCase();
+  if(u.includes('facebook.com')||u.includes('fb.watch')||u.includes('fb.com')) return 'facebook';
+  if(u.includes('instagram.com')||u.includes('instagr.am')) return 'instagram';
+  if(u.includes('tiktok.com')||u.includes('vm.tiktok')) return 'tiktok';
+  if(u.includes('lemon8')) return 'lemon8';
+  return 'other';
+}
+
+function updateHeader(){
+  const p=clips.filter(c=>!c.reviewed).length;
+  document.getElementById('header-sub').textContent=`${clips.length} คลิปทั้งหมด · รอดู ${p} รายการ`;
+}
+
+function buildPillSet(cid,items,cur,fn,isPlatform){
+  const cc={};
+  if(isPlatform) clips.forEach(c=>{cc[c.platform]=(cc[c.platform]||0)+1});
+  else clips.forEach(c=>{cc[c.category||'']=(cc[c.category||'']||0)+1});
+  document.getElementById(cid).innerHTML=items.map(p=>{
+    const n=p.id==='all'?clips.length:(cc[p.id]||0);
+    const dot=p.dot?`<span class="dot ${p.dot}"></span>`:'';
+    const cnt=n>0?`<span style="font-size:10px;opacity:0.65">${n}</span>`:'';
+    return `<div class="pill ${cur===p.id?p.ac:''}" onclick="${fn}('${p.id}')">${dot}${p.label}${cnt}</div>`;
+  }).join('');
+}
+
+function buildAllPills(){
+  buildPillSet('pf-pills',PLATFORMS,pfF,'setPF',true);
+  buildPillSet('cf-pills',CATEGORIES,cfF,'setCF',false);
+  buildPillSet('hpf-pills',PLATFORMS,hpfF,'setHPF',true);
+  buildPillSet('hcf-pills',CATEGORIES,hcfF,'setHCF',false);
+}
+
+function setPF(id){pfF=id;buildAllPills();renderClips()}
+function setCF(id){cfF=id;buildAllPills();renderClips()}
+function setHPF(id){hpfF=id;buildAllPills();renderHistory()}
+function setHCF(id){hcfF=id;buildAllPills();renderHistory()}
+
+async function saveClip(){
+  const url=document.getElementById('inp-url').value.trim();
+  const sel=document.getElementById('inp-platform').value;
+  const cat=document.getElementById('inp-category').value;
+  const tag=document.getElementById('inp-tag').value.trim();
+  const note=document.getElementById('inp-note').value.trim();
+  if(!url){flash('กรุณาวางลิงก์ก่อน');return}
+  const platform=sel==='auto'?detectPlatform(url):sel;
+  const clip={
+    id:Date.now(), url, tag, note, platform, category:cat,
+    status:'new', assignee:'', reviewed:false, reviewedAt:'',
+    savedAt:new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+  };
+  setBtn(true);
+  flash('กำลังบันทึก...');
+  await gasPost({action:'save', clip});
+  clips.unshift(clip);
+  ['inp-url','inp-tag','inp-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inp-platform').value='auto';
+  document.getElementById('inp-category').value='';
+  flash('บันทึกแล้ว ✓');
+  setBtn(false);
+  updateHeader(); buildAllPills(); renderClips(); renderMeeting(); renderHistory();
+}
+
+function setBtn(loading){
+  const b=document.getElementById('btn-save');
+  b.disabled=loading;
+  b.innerHTML=loading?'<i class="ti ti-loader"></i> กำลังบันทึก...':'<i class="ti ti-device-floppy"></i> บันทึก';
+}
+
+function flash(msg){const el=document.getElementById('feedback');el.textContent=msg;setTimeout(()=>el.textContent='',3000)}
+
+async function toggleReviewed(id){
+  const c=clips.find(x=>x.id===id); if(!c) return;
+  c.reviewed=!c.reviewed;
+  c.reviewedAt=c.reviewed?new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+  await gasPost({action:'update', clip:c, id});
+  updateHeader(); renderClips(); renderMeeting(); renderHistory();
+}
+
+async function setStatus(id,val){
+  const c=clips.find(x=>x.id===id); if(!c) return;
+  c.status=val;
+  await gasPost({action:'update', clip:c, id});
+  renderClips(); renderMeeting();
+}
+
+async function setAssignee(id,val){
+  const c=clips.find(x=>x.id===id); if(!c) return;
+  c.assignee=val; if(val) c.status='assigned';
+  await gasPost({action:'update', clip:c, id});
+  renderClips(); renderMeeting();
+}
+
+async function delClip(id){
+  clips=clips.filter(x=>x.id!==id);
+  await gasPost({action:'delete', id});
+  updateHeader(); buildAllPills(); renderClips(); renderMeeting(); renderHistory();
+}
+
+function getPF(id){return PLATFORMS.find(p=>p.id===id)||PLATFORMS[PLATFORMS.length-1]}
+function getCF(id){return CATEGORIES.find(c=>c.id===id)||CATEGORIES[0]}
+function pbadgeHTML(p){const pl=getPF(p);return`<span class="pbadge ${pl.badge}">${pl.label}</span>`}
+function cbadgeHTML(cat){const cf=getCF(cat);return cat&&cat!==''?`<span class="cbadge ${cf.cbadge}">${cf.badge}</span>`:''}
+
+function cardHTML(c,showAssign){
+  return`<div class="clip-card ${c.reviewed?'reviewed':''}">
+    <div class="card-head">
+      ${pbadgeHTML(c.platform)}${cbadgeHTML(c.category)}
+      ${c.tag?`<span class="tag-chip">${c.tag}</span>`:''}
+      ${c.reviewed?`<span class="rev-badge"><i class="ti ti-check" style="font-size:11px"></i> ดูแล้ว</span>`:''}
+      <button class="del-btn" onclick="delClip(${c.id})"><i class="ti ti-trash" style="font-size:15px"></i></button>
+    </div>
+    ${c.note?`<div class="note">${c.note}</div>`:''}
+    <div class="card-foot">
+      <a href="${c.url}" class="open-link" target="_blank" rel="noopener"><i class="ti ti-external-link" style="font-size:13px"></i> เปิดลิงก์</a>
+      ${c.assignee?`<span class="assignee-chip"><i class="ti ti-user" style="font-size:11px"></i> ${c.assignee}</span>`:''}
+      <span class="meta-txt">${c.savedAt}</span>
+    </div>
+    ${showAssign?`<div class="assign-row">
+      <select onchange="setStatus(${c.id},this.value)">
+        <option value="new" ${c.status==='new'?'selected':''}>New</option>
+        <option value="review" ${c.status==='review'?'selected':''}>In Review</option>
+        <option value="assigned" ${c.status==='assigned'?'selected':''}>Assigned</option>
+      </select>
+      <input type="text" placeholder="Assign ให้..." value="${c.assignee||''}" onblur="setAssignee(${c.id},this.value)" />
+    </div>`:''}
+    <div class="check-row" onclick="toggleReviewed(${c.id})">
+      <div class="chk ${c.reviewed?'on':''}">✓</div>
+      <span class="chk-label">${c.reviewed?'นำเสนอแล้ว':'ทำเครื่องหมายว่าดูแล้ว'}</span>
+      ${c.reviewedAt?`<span class="chk-date">${c.reviewedAt}</span>`:''}
+    </div>
+  </div>`;
+}
+
+function filterClips(pf,cf,showR){
+  let l=clips;
+  if(pf!=='all') l=l.filter(c=>c.platform===pf);
+  if(cf!=='all') l=l.filter(c=>c.category===cf);
+  if(!showR) l=l.filter(c=>!c.reviewed);
+  return l;
+}
+
+function renderClips(){
+  const showR=document.getElementById('tog-reviewed').checked;
+  const list=filterClips(pfF,cfF,showR);
+  const el=document.getElementById('clips-list');
+  if(!list.length){el.innerHTML=`<div class="empty"><i class="ti ti-bookmarks"></i><div>${!clips.length?'ยังไม่มีคลิปที่บันทึกไว้':'ไม่มีคลิปที่ตรงกับ filter นี้'}</div></div>`;return}
+  el.innerHTML=list.map(c=>cardHTML(c,true)).join('');
+}
+
+function renderMeeting(){
+  const pending=clips.filter(c=>!c.reviewed);
+  const done=clips.filter(c=>c.reviewed);
+  document.getElementById('meet-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-n">${pending.length}</div><div class="stat-l">รอนำเสนอ</div></div>
+    <div class="stat-card"><div class="stat-n">${done.length}</div><div class="stat-l">นำเสนอแล้ว</div></div>`;
+  if(!clips.length){document.getElementById('meet-list').innerHTML=`<div class="empty"><i class="ti ti-presentation"></i><div>ยังไม่มีคลิป</div></div>`;return}
+  let html='';
+  if(pending.length){
+    html+=`<div class="sec-head">รอนำเสนอ · ${pending.length} รายการ</div>`;
+    html+=pending.map(c=>`<div class="meet-card">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px">${pbadgeHTML(c.platform)}${cbadgeHTML(c.category)}${c.tag?`<span class="tag-chip">${c.tag}</span>`:''}</div>
+      ${c.note?`<div class="note">${c.note}</div>`:''}
+      <div class="meet-btns">
+        <a href="${c.url}" class="btn-open" target="_blank" rel="noopener"><i class="ti ti-player-play"></i> เปิดคลิป</a>
+        <input class="meet-assign" type="text" placeholder="Assign ให้..." value="${c.assignee||''}" onblur="setAssignee(${c.id},this.value)" />
+      </div>
+      <div class="check-row" onclick="toggleReviewed(${c.id})">
+        <div class="chk">✓</div><span class="chk-label">ทำเครื่องหมายว่านำเสนอแล้ว</span>
+      </div>
+    </div>`).join('');
+  }
+  if(done.length){
+    html+=`<div class="sec-head" style="margin-top:20px">นำเสนอแล้ว · ${done.length} รายการ</div>`;
+    html+=done.map(c=>`<div class="meet-card done">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${pbadgeHTML(c.platform)}${cbadgeHTML(c.category)}
+        <span class="rev-badge"><i class="ti ti-check" style="font-size:11px"></i> ดูแล้ว</span>
+        ${c.assignee?`<span class="assignee-chip"><i class="ti ti-user" style="font-size:11px"></i> ${c.assignee}</span>`:''}
+      </div>
+      ${c.note?`<div class="note" style="margin-top:7px">${c.note}</div>`:''}
+      <div style="display:flex;align-items:center;gap:7px;margin-top:8px">
+        <a href="${c.url}" class="btn-ghost" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> เปิด</a>
+        <span class="meta-txt">${c.reviewedAt||''}</span>
+        <button class="btn-ghost" onclick="toggleReviewed(${c.id})" style="margin-left:auto"><i class="ti ti-arrow-back-up"></i> ย้อนกลับ</button>
+      </div>
+    </div>`).join('');
+  }
+  document.getElementById('meet-list').innerHTML=html;
+}
+
+function renderHistory(){
+  const list=filterClips(hpfF,hcfF,true).filter(c=>c.reviewed);
+  const el=document.getElementById('hist-list');
+  if(!list.length){el.innerHTML=`<div class="empty"><i class="ti ti-clock-history"></i><div>ยังไม่มีคลิปที่นำเสนอแล้ว</div></div>`;return}
+  el.innerHTML=list.map(c=>cardHTML(c,false)).join('');
+}
+
+function goPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='clips'){buildAllPills();renderClips()}
+  if(name==='meeting') renderMeeting();
+  if(name==='history'){buildAllPills();renderHistory()}
+}
+
+loadFromGAS();
+</script>
+</body>
+</html>
